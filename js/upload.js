@@ -42,6 +42,30 @@
   var currentResizer;
 
   /**
+   * Поле для координаты Слева
+   * @type {HTMLInputElement}
+   */
+  var resizeX = document.querySelector('#resize-x');
+
+   /**
+   * Поле для координаты Сверху
+   * @type {HTMLInputElement}
+   */
+  var resizeY = document.querySelector('#resize-y');
+
+  /**
+   * Поле для Стороны
+   * @type {HTMLInputElement}
+   */
+  var resizeSide = document.querySelector('#resize-size');
+
+  /**
+   * Кнопка применения ресайза
+   * @type {HTMLButtonElement}
+   */
+  var resizeSubmit = document.querySelector('#resize-fwd');
+
+  /**
    * Удаляет текущий объект {@link Resizer}, чтобы создать новый с другим
    * изображением.
    */
@@ -72,7 +96,71 @@
    * @return {boolean}
    */
   function resizeFormIsValid() {
-    return true;
+    var valid = true;
+    var width = currentResizer._image.naturalWidth;
+    var height = currentResizer._image.naturalHeight;
+    var currentX = currentResizer._resizeConstraint.x;
+    var currentY = currentResizer._resizeConstraint.y;
+    var currentSide = currentResizer._resizeConstraint.side;
+    var radix = 10;
+
+    var x = {
+      label: resizeX.previousSibling.innerHTML,
+      val: (resizeX.value === '') ? currentX : parseInt(resizeX.value, radix)
+    };
+    var y = {
+      label: resizeY.previousSibling.innerHTML,
+      val: (resizeY.value === '') ? currentY : parseInt(resizeY.value, radix)
+    };
+    var side = {
+      label: resizeSide.previousSibling.innerHTML,
+      val: (resizeSide.value === '') ? currentSide : parseInt(resizeSide.value, radix)
+    };
+    var formInputs = [x, y, side];
+
+    /**
+     * Проверяем поля, чтобы были положительными числовыми
+     */
+    for (var i = 0; i < formInputs.length; i++) {
+      if (isNaN(formInputs[i].val)) {
+        showMessage(Action.CUSTOM, 'Значение поля "' + formInputs[i].label + '" не числовое.');
+        valid = false;
+        break;
+      } else if (formInputs[i].val < 0) {
+        showMessage(Action.CUSTOM, 'Значение поля "' + formInputs[i].label + '" не может быть отрицательным.');
+        valid = false;
+        break;
+      }
+    }
+
+    /**
+     * Проверяем корректность введенных чисел
+     */
+    if (valid) {
+      if (side.val === 0) {
+        showMessage(Action.CUSTOM, 'Значение поля "' + side.label + '" должно быть больше 0.');
+      } else if (x.val + side.val > width) {
+        showMessage(Action.CUSTOM, 'Суммарное значение полей "' + x.label + '" и "' + side.label + '" не должно превышать ширину исходного изображения.');
+        valid = false;
+      } else if (y.val + side.val > height) {
+        showMessage(Action.CUSTOM, 'Суммарное значение полей "' + y.label + '" и "' + side.label + '" не должно превышать высоту исходного изображения.');
+        valid = false;
+      }
+    }
+
+    return valid;
+  }
+
+  /**
+   * Устанавливает прослушку закрытия окна сообщения
+   */
+  function listenHideBtn() {
+    var hideBtn = document.querySelector('.hide-message');
+    hideBtn.onclick = function(e) {
+      e.preventDefault();
+      resizeSubmit.disabled = false;
+      hideMessage();
+    };
   }
 
   /**
@@ -120,16 +208,34 @@
         isError = true;
         message = message || 'Неподдерживаемый формат файла<br> <a href="' + document.location + '">Попробовать еще раз</a>.';
         break;
+
+      case Action.CUSTOM:
+        message = (message || 'Что-то пошло не так') + '<br> <a class="hide-message" href="' + document.location + '">Попробовать еще раз</a>.';
+        break;
     }
 
     uploadMessage.querySelector('.upload-message-container').innerHTML = message;
     uploadMessage.classList.remove('invisible');
     uploadMessage.classList.toggle('upload-message-error', isError);
+    if (action === Action.CUSTOM) {
+      resizeSubmit.disabled = true;
+      listenHideBtn();
+    }
     return uploadMessage;
   }
 
   function hideMessage() {
     uploadMessage.classList.add('invisible');
+  }
+
+  /**
+   * Очистка полей
+   */
+  function clearResizeFormInputs() {
+    var inputs = resizeForm.querySelectorAll('input');
+    for (var i = 0; i < inputs.length; i++) {
+      inputs[i].value = '';
+    }
   }
 
   /**
@@ -181,6 +287,7 @@
 
     cleanupResizer();
     updateBackground();
+    clearResizeFormInputs();
 
     resizeForm.classList.add('invisible');
     uploadForm.classList.remove('invisible');
@@ -223,6 +330,7 @@
 
     cleanupResizer();
     updateBackground();
+    clearResizeFormInputs();
 
     filterForm.classList.add('invisible');
     uploadForm.classList.remove('invisible');
