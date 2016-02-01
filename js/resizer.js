@@ -96,6 +96,8 @@
       this._ctx.setLineDash([15, 10]);
       // Смещение первого штриха от начала линии.
       this._ctx.lineDashOffset = 7;
+      //Цвет заполнения.
+      this._ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
 
       // Сохранение состояния канваса.
       // Подробней см. строку 132.
@@ -106,18 +108,47 @@
 
       var displX = -(this._resizeConstraint.x + this._resizeConstraint.side / 2);
       var displY = -(this._resizeConstraint.y + this._resizeConstraint.side / 2);
+
+
+      //Отрисова зоны, где будет "просвечиваться" картинка с рамкой.
+      this._ctx.fillRect(
+          (-this._resizeConstraint.side / 2) - this._ctx.lineWidth,
+          (-this._resizeConstraint.side / 2) - this._ctx.lineWidth,
+          this._resizeConstraint.side + this._ctx.lineWidth / 2,
+          this._resizeConstraint.side + this._ctx.lineWidth / 2);
+
+      //Отрисовка затемнения поверх зоны просвечивания,
+      //при этом зона просвечивания становится прозрачной.
+      this._ctx.globalCompositeOperation = 'source-out';
+      this._ctx.fillRect(displX, displY, this._container.width, this._container.height);
+
+      //Отрисовка изображения за затемнением.
+      this._ctx.globalCompositeOperation = 'destination-atop';
       // Отрисовка изображения на холсте. Параметры задают изображение, которое
       // нужно отрисовать и координаты его верхнего левого угла.
       // Координаты задаются от центра холста.
       this._ctx.drawImage(this._image, displX, displY);
 
-      // Отрисовка прямоугольника, обозначающего область изображения после
-      // кадрирования. Координаты задаются от центра.
+      //Отрисовка над всеми предыдущими отрисовками.
+      this._ctx.globalCompositeOperation = 'source-over';
+      //Отрисовка прямоугольника, обозначающего область изображения после
+      //кадрирования. Координаты задаются от центра.
       this._ctx.strokeRect(
           (-this._resizeConstraint.side / 2) - this._ctx.lineWidth / 2,
           (-this._resizeConstraint.side / 2) - this._ctx.lineWidth / 2,
           this._resizeConstraint.side - this._ctx.lineWidth / 2,
           this._resizeConstraint.side - this._ctx.lineWidth / 2);
+
+      //Настройки для текста.
+      this._ctx.fillStyle = 'white';
+      this._ctx.font = '14px "Open Sans", Arial, sans-serif';
+      this._ctx.textAlign = 'center';
+      //Выводим размер кадрируемого изображения.
+      this._ctx.fillText(
+        this._image.naturalWidth + ' x ' + this._image.naturalHeight,
+        -this._ctx.lineWidth,
+        (-this._resizeConstraint.side / 2) - 2.5 * this._ctx.lineWidth);
+
 
       // Восстановление состояния канваса, которое было до вызова ctx.save
       // и последующего изменения системы координат. Нужно для того, чтобы
