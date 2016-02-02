@@ -65,6 +65,18 @@
    */
   var resizeSubmit = document.querySelector('#resize-fwd');
 
+  var resizeErrorDiv = document.createElement('div');
+  resizeErrorDiv.id = 'upload-resize-error';
+  var parent = document.querySelector('.upload-resize-controls');
+  parent.insertBefore(resizeErrorDiv, parent.childNodes[0]);
+  /**
+   * Блок для вывода сообщения
+   * @type {HTMLDivElement}
+   */
+  var uploadResizeError = document.querySelector('#upload-resize-error');
+
+  var radix = 10;
+
   /**
    * Удаляет текущий объект {@link Resizer}, чтобы создать новый с другим
    * изображением.
@@ -93,42 +105,54 @@
 
   /**
    * Проверяет, валидны ли данные, в форме кадрирования.
-   * @return {boolean}
+   * @return {Object}
    */
   function resizeFormIsValid() {
-    var valid = true;
+    var validity = {
+      valid: true,
+      message: ''
+    };
     var width = currentResizer._image.naturalWidth;
     var height = currentResizer._image.naturalHeight;
-    var currentX = currentResizer._resizeConstraint.x;
-    var currentY = currentResizer._resizeConstraint.y;
-    var currentSide = currentResizer._resizeConstraint.side;
-    var radix = 10;
 
     var x = {
       label: resizeX.previousSibling.innerHTML,
-      val: (resizeX.value === '') ? currentX : parseInt(resizeX.value, radix)
+      val: resizeX.value
     };
     var y = {
       label: resizeY.previousSibling.innerHTML,
-      val: (resizeY.value === '') ? currentY : parseInt(resizeY.value, radix)
+      val: resizeY.value
     };
     var side = {
       label: resizeSide.previousSibling.innerHTML,
-      val: (resizeSide.value === '') ? currentSide : parseInt(resizeSide.value, radix)
+      val: resizeSide.value
     };
     var formInputs = [x, y, side];
 
     /**
-     * Проверяем поля, чтобы были положительными числовыми
+     * Проверка поля на пустоту
      */
     for (var i = 0; i < formInputs.length; i++) {
-      if (isNaN(formInputs[i].val)) {
-        showMessage(Action.CUSTOM, 'Значение поля "' + formInputs[i].label + '" не числовое.');
-        valid = false;
+      if (formInputs[i].val.length === 0) {
+        validity.message = 'Заполните поле "' + formInputs[i].label + '".';
+        validity.valid = false;
         break;
-      } else if (formInputs[i].val < 0) {
-        showMessage(Action.CUSTOM, 'Значение поля "' + formInputs[i].label + '" не может быть отрицательным.');
-        valid = false;
+      } else {
+        formInputs[i].val = parseInt(formInputs[i].val, radix);
+      }
+    }
+
+    /**
+     * Проверяем поля, чтобы были положительными числовыми
+     */
+    for (var k = 0; k < formInputs.length; k++) {
+      if (isNaN(formInputs[k].val)) {
+        validity.message = 'Значение поля "' + formInputs[k].label + '" должно быть числовым.';
+        validity.valid = false;
+        break;
+      } else if (formInputs[k].val < 0) {
+        validity.message = 'Значение поля "' + formInputs[k].label + '" не может быть отрицательным.';
+        validity.valid = false;
         break;
       }
     }
@@ -136,32 +160,59 @@
     /**
      * Проверяем корректность введенных чисел
      */
-    if (valid) {
+    if (validity.valid) {
       if (side.val === 0) {
-        showMessage(Action.CUSTOM, 'Значение поля "' + side.label + '" должно быть больше 0.');
+        validity.message = 'Значение поля "' + side.label + '" должно быть больше 0.';
+        validity.valid = false;
       } else if (x.val + side.val > width) {
-        showMessage(Action.CUSTOM, 'Суммарное значение полей "' + x.label + '" и "' + side.label + '" не должно превышать ширину исходного изображения.');
-        valid = false;
+        validity.message = 'Суммарное значение полей "' + x.label + '" и "' + side.label + '" не должно превышать ширину исходного изображения.';
+        validity.valid = false;
       } else if (y.val + side.val > height) {
-        showMessage(Action.CUSTOM, 'Суммарное значение полей "' + y.label + '" и "' + side.label + '" не должно превышать высоту исходного изображения.');
-        valid = false;
+        validity.message = 'Суммарное значение полей "' + y.label + '" и "' + side.label + '" не должно превышать высоту исходного изображения.';
+        validity.valid = false;
       }
     }
 
-    return valid;
+    return validity;
   }
 
   /**
-   * Устанавливает прослушку закрытия окна сообщения
+   * Устанавливаем значения в полях
    */
-  function listenHideBtn() {
-    var hideBtn = document.querySelector('.hide-message');
-    hideBtn.onclick = function(e) {
-      e.preventDefault();
-      resizeSubmit.disabled = false;
-      hideMessage();
-    };
+  function setValues() {
+    if ((currentResizer === null) || (typeof currentResizer === 'undefined')) {
+      setTimeout(setValues, 10);
+    } else {
+      resizeX.value = parseInt(currentResizer._resizeConstraint.x, radix);
+      resizeY.value = parseInt(currentResizer._resizeConstraint.y, radix);
+      resizeSide.value = parseInt(currentResizer._resizeConstraint.side, radix);
+    }
   }
+
+  /**
+   * Функция принятия мер в зависимости от результатов валидации
+   * @return {function}
+   */
+  var actionValidity = function() {
+    var result = resizeFormIsValid();
+
+    resizeSubmit.disabled = !(result.valid);
+    uploadResizeError.innerHTML = result.message;
+
+    if (!result.valid) {
+      uploadResizeError.style.display = 'block';
+    } else {
+      uploadResizeError.style.display = 'none';
+    }
+  };
+
+  /**
+   * Ставим проверку на валидность
+   * при изменении значений в полях
+   */
+  resizeX.oninput = actionValidity;
+  resizeY.oninput = actionValidity;
+  resizeSide.oninput = actionValidity;
 
   /**
    * Форма загрузки изображения.
@@ -208,19 +259,11 @@
         isError = true;
         message = message || 'Неподдерживаемый формат файла<br> <a href="' + document.location + '">Попробовать еще раз</a>.';
         break;
-
-      case Action.CUSTOM:
-        message = (message || 'Что-то пошло не так') + '<br> <a class="hide-message" href="' + document.location + '">Попробовать еще раз</a>.';
-        break;
     }
 
     uploadMessage.querySelector('.upload-message-container').innerHTML = message;
     uploadMessage.classList.remove('invisible');
     uploadMessage.classList.toggle('upload-message-error', isError);
-    if (action === Action.CUSTOM) {
-      resizeSubmit.disabled = true;
-      listenHideBtn();
-    }
     return uploadMessage;
   }
 
@@ -229,13 +272,15 @@
   }
 
   /**
-   * Очистка полей
+   * Очистка полей и блока ошибок
    */
-  function clearResizeFormInputs() {
+  function clearResizeForm() {
     var inputs = resizeForm.querySelectorAll('input');
     for (var i = 0; i < inputs.length; i++) {
       inputs[i].value = '';
     }
+    uploadResizeError.innerHTML = '';
+    uploadResizeError.style.display = 'none';
   }
 
   /**
@@ -269,6 +314,7 @@
         };
 
         fileReader.readAsDataURL(element.files[0]);
+        setValues();
       } else {
         // Показ сообщения об ошибке, если загружаемый файл, не является
         // поддерживаемым изображением.
@@ -287,7 +333,7 @@
 
     cleanupResizer();
     updateBackground();
-    clearResizeFormInputs();
+    clearResizeForm();
 
     resizeForm.classList.add('invisible');
     uploadForm.classList.remove('invisible');
@@ -330,7 +376,7 @@
 
     cleanupResizer();
     updateBackground();
-    clearResizeFormInputs();
+    clearResizeForm();
 
     filterForm.classList.add('invisible');
     uploadForm.classList.remove('invisible');
