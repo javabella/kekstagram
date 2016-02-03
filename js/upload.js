@@ -78,6 +78,13 @@
   var radix = 10;
 
   /**
+   * Ключ для куки
+   * @type {String}
+   */
+  var filterKey = 'filter';
+
+
+  /**
    * Удаляет текущий объект {@link Resizer}, чтобы создать новый с другим
    * изображением.
    */
@@ -283,6 +290,67 @@
     uploadResizeError.style.display = 'none';
   }
 
+  /*global docCookies */
+
+  /**
+   * Устанавливает значения в форме используя куки
+   */
+  function setValsFromCookies() {
+    if (docCookies.hasItem(filterKey) && filterKey === 'filter') {
+      var radios = document.querySelectorAll('.upload-filter-controls input');
+      var filterVal = docCookies.getItem(filterKey);
+      var valueExists = false;
+
+      for (var i = 0; i < radios.length; i++) {
+        if (radios[i].value === filterVal) {
+          radios[i].setAttribute('checked', 'checked');
+          filterImage.classList.add('filter-' + filterVal);
+          valueExists = true;
+        } else {
+          radios[i].removeAttribute('checked');
+        }
+      }
+
+      if (!valueExists) {
+        radios[0].setAttribute('checked", "checked');
+        filterImage.classList.add('filter-' + radios[0].value);
+      }
+    }
+  }
+
+  /**
+   * Срок жизни куки
+   * @param  {string} birthMonth месяц рождения в формате двух символов
+   * @param  {string} birthDay   день рождения в формате двух символов
+   * @return {Date}              день окончания срока
+   */
+  function getExpireDay(birthMonth, birthDay) {
+    var monthAndDay = '-' + birthMonth + '-' + birthDay;
+    var assumeNearestPastBirthDay = new Date(new Date().getFullYear() + monthAndDay).valueOf();
+    var now = Date.now().valueOf();
+    var nearestPastBirthDay = function() {
+      if (assumeNearestPastBirthDay > now) {
+        return new Date((new Date().getFullYear() - 1) + monthAndDay).valueOf();
+      } else {
+        return assumeNearestPastBirthDay;
+      }
+    }();
+    var expireDay = new Date(now + now - nearestPastBirthDay);
+    return expireDay;
+  }
+
+
+  /**
+   * Записывает значения в куки
+   */
+  function saveValuesInCookies() {
+    if (filterKey === 'filter') {
+      var checkedRadio = document.querySelector('.upload-filter-controls input:checked');
+      docCookies.setItem(filterKey, checkedRadio.value, getExpireDay('06', '15'));
+    }
+  }
+
+
   /**
    * Обработчик изменения изображения в форме загрузки. Если загруженный
    * файл является изображением, считывается исходник картинки, создается
@@ -374,6 +442,7 @@
   filterForm.onsubmit = function(evt) {
     evt.preventDefault();
 
+    saveValuesInCookies();
     cleanupResizer();
     updateBackground();
     clearResizeForm();
@@ -410,4 +479,6 @@
 
   cleanupResizer();
   updateBackground();
+  setValsFromCookies();
+
 })();
