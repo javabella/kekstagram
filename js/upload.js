@@ -42,6 +42,42 @@
   var currentResizer;
 
   /**
+   * Поле для координаты Слева
+   * @type {HTMLInputElement}
+   */
+  var resizeX = document.querySelector('#resize-x');
+
+   /**
+   * Поле для координаты Сверху
+   * @type {HTMLInputElement}
+   */
+  var resizeY = document.querySelector('#resize-y');
+
+  /**
+   * Поле для Стороны
+   * @type {HTMLInputElement}
+   */
+  var resizeSide = document.querySelector('#resize-size');
+
+  /**
+   * Кнопка применения ресайза
+   * @type {HTMLButtonElement}
+   */
+  var resizeSubmit = document.querySelector('#resize-fwd');
+
+  var resizeErrorDiv = document.createElement('div');
+  resizeErrorDiv.id = 'upload-resize-error';
+  var parent = document.querySelector('.upload-resize-controls');
+  parent.insertBefore(resizeErrorDiv, parent.childNodes[0]);
+  /**
+   * Блок для вывода сообщения
+   * @type {HTMLDivElement}
+   */
+  var uploadResizeError = document.querySelector('#upload-resize-error');
+
+  var radix = 10;
+
+  /**
    * Удаляет текущий объект {@link Resizer}, чтобы создать новый с другим
    * изображением.
    */
@@ -69,11 +105,114 @@
 
   /**
    * Проверяет, валидны ли данные, в форме кадрирования.
-   * @return {boolean}
+   * @return {Object}
    */
   function resizeFormIsValid() {
-    return true;
+    var validity = {
+      valid: true,
+      message: ''
+    };
+    var width = currentResizer._image.naturalWidth;
+    var height = currentResizer._image.naturalHeight;
+
+    var x = {
+      label: resizeX.previousSibling.innerHTML,
+      val: resizeX.value
+    };
+    var y = {
+      label: resizeY.previousSibling.innerHTML,
+      val: resizeY.value
+    };
+    var side = {
+      label: resizeSide.previousSibling.innerHTML,
+      val: resizeSide.value
+    };
+    var formInputs = [x, y, side];
+
+    /**
+     * Проверка поля на пустоту
+     */
+    for (var i = 0; i < formInputs.length; i++) {
+      if (formInputs[i].val.length === 0) {
+        validity.message = 'Заполните поле "' + formInputs[i].label + '".';
+        validity.valid = false;
+        break;
+      } else {
+        formInputs[i].val = parseInt(formInputs[i].val, radix);
+      }
+    }
+
+    /**
+     * Проверяем поля, чтобы были положительными числовыми
+     */
+    for (var k = 0; k < formInputs.length; k++) {
+      if (isNaN(formInputs[k].val)) {
+        validity.message = 'Значение поля "' + formInputs[k].label + '" должно быть числовым.';
+        validity.valid = false;
+        break;
+      } else if (formInputs[k].val < 0) {
+        validity.message = 'Значение поля "' + formInputs[k].label + '" не может быть отрицательным.';
+        validity.valid = false;
+        break;
+      }
+    }
+
+    /**
+     * Проверяем корректность введенных чисел
+     */
+    if (validity.valid) {
+      if (side.val === 0) {
+        validity.message = 'Значение поля "' + side.label + '" должно быть больше 0.';
+        validity.valid = false;
+      } else if (x.val + side.val > width) {
+        validity.message = 'Суммарное значение полей "' + x.label + '" и "' + side.label + '" не должно превышать ширину исходного изображения.';
+        validity.valid = false;
+      } else if (y.val + side.val > height) {
+        validity.message = 'Суммарное значение полей "' + y.label + '" и "' + side.label + '" не должно превышать высоту исходного изображения.';
+        validity.valid = false;
+      }
+    }
+
+    return validity;
   }
+
+  /**
+   * Устанавливаем значения в полях
+   */
+  function setValues() {
+    if ((currentResizer === null) || (typeof currentResizer === 'undefined')) {
+      setTimeout(setValues, 10);
+    } else {
+      resizeX.value = parseInt(currentResizer._resizeConstraint.x, radix);
+      resizeY.value = parseInt(currentResizer._resizeConstraint.y, radix);
+      resizeSide.value = parseInt(currentResizer._resizeConstraint.side, radix);
+    }
+  }
+
+  /**
+   * Функция принятия мер в зависимости от результатов валидации
+   * @return {function}
+   */
+  var actionValidity = function() {
+    var result = resizeFormIsValid();
+
+    resizeSubmit.disabled = !(result.valid);
+    uploadResizeError.innerHTML = result.message;
+
+    if (!result.valid) {
+      uploadResizeError.style.display = 'block';
+    } else {
+      uploadResizeError.style.display = 'none';
+    }
+  };
+
+  /**
+   * Ставим проверку на валидность
+   * при изменении значений в полях
+   */
+  resizeX.oninput = actionValidity;
+  resizeY.oninput = actionValidity;
+  resizeSide.oninput = actionValidity;
 
   /**
    * Форма загрузки изображения.
@@ -133,6 +272,18 @@
   }
 
   /**
+   * Очистка полей и блока ошибок
+   */
+  function clearResizeForm() {
+    var inputs = resizeForm.querySelectorAll('input');
+    for (var i = 0; i < inputs.length; i++) {
+      inputs[i].value = '';
+    }
+    uploadResizeError.innerHTML = '';
+    uploadResizeError.style.display = 'none';
+  }
+
+  /**
    * Обработчик изменения изображения в форме загрузки. Если загруженный
    * файл является изображением, считывается исходник картинки, создается
    * Resizer с загруженной картинкой, добавляется в форму кадрирования
@@ -163,6 +314,7 @@
         };
 
         fileReader.readAsDataURL(element.files[0]);
+        setValues();
       } else {
         // Показ сообщения об ошибке, если загружаемый файл, не является
         // поддерживаемым изображением.
@@ -181,6 +333,7 @@
 
     cleanupResizer();
     updateBackground();
+    clearResizeForm();
 
     resizeForm.classList.add('invisible');
     uploadForm.classList.remove('invisible');
@@ -223,6 +376,7 @@
 
     cleanupResizer();
     updateBackground();
+    clearResizeForm();
 
     filterForm.classList.add('invisible');
     uploadForm.classList.remove('invisible');

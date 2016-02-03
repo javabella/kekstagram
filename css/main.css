@@ -579,3 +579,19 @@ input[type=radio]:checked + .upload-filter-label {
 .likes-count-liked:before {
   background-position-x: -18px;
 }
+
+#upload-resize-error {
+  position: absolute;
+  bottom: 52px;
+  left: -56px;
+
+  width: 582px;
+  display: none;
+  padding: 15px 5px 10px;
+
+  line-height: 1.4;
+  text-align: center;
+
+  background: rgba(0,0,0,0.8);
+  box-sizing: border-box;
+}
