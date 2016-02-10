@@ -30,7 +30,7 @@
   function getPictures() {
     var xhr = new XMLHttpRequest();
     var loadedPictures;
-    xhr.open('GET', 'http://o0.github.io/assets/json/pictures.json');
+    xhr.open('GET', 'https://o0.github.io/assets/json/pictures.json');
     xhr.timeout = XHR_TIMEOUT;
     xhr.onload = function(e) {
       var response = e.target.response;
