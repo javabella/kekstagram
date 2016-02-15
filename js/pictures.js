@@ -60,9 +60,8 @@
       currentPage = 0;
       renderPictures(loadedPictures, currentPage, true);
 
-      var filters = document.querySelector('.filters');
-      filters.addEventListener('click', function(e) {
-        var clickedElement = e.target;
+      filters.addEventListener('click', function(ev) {
+        var clickedElement = ev.target;
         if (clickedElement.classList.contains('filters-item')) {
           setActiveFilter(clickedElement.getAttribute('for'), loadedPictures);
         }
@@ -178,7 +177,7 @@
 
   var scrollTimeout;
 
-  window.addEventListener('scroll', function(e) {
+  window.addEventListener('scroll', function() {
     clearTimeout(scrollTimeout);
     scrollTimeout = setTimeout(function() {
       appendPage();
