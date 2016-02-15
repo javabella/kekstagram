@@ -8,19 +8,38 @@
   var filters = document.querySelector('.filters');
   var filtersItem = document.querySelectorAll('.filters-radio');
   var activeFilterId = filtersItem[0].id;
+  var currentPage = 0;
+  var PICTURES_PER_PAGE = 12;
+  var filteredPictures;
+  var THROTTLE_TIMEOUT = 100;
+
   filters.classList.add('hidden');
   getPictures();
 
-  function renderPictures(pictures) {
+  /**
+   * Вывод картинок
+   * @param  {Array<Object>}  pictures
+   * @param  {number}         pageNumber
+   * @param  {boolean}        replace
+   * @return
+   */
+  function renderPictures(pictures, pageNumber, replace) {
     container.classList.add('pictures-loading');
-    container.innerHTML = '';
+    if (replace) {
+      container.innerHTML = '';
+    }
 
     var fragment = document.createDocumentFragment();
-    pictures.forEach(function(picture, index, array) {
+    var fromItem = pageNumber * PICTURES_PER_PAGE;
+    var toItem = fromItem + PICTURES_PER_PAGE;
+    var pagePictures = pictures.slice(fromItem, toItem);
+
+    pagePictures.forEach(function(picture, index, array) {
       var element = createElementFromTemplate(picture, (index === array.length - 1));
       fragment.appendChild(element);
     });
     container.appendChild(fragment);
+    currentPage++;
   }
 
   /**
@@ -37,13 +56,17 @@
       loadedPictures = JSON.parse(response);
 
       container.classList.remove('pictures-failure');
-      renderPictures(loadedPictures);
-      for (var i = 0; i < filtersItem.length; i++) {
-        filtersItem[i].onclick = function(ev) {
-          var filterId = ev.target.id;
-          setActiveFilter(filterId, loadedPictures);
-        };
-      }
+      filteredPictures = loadedPictures;
+      currentPage = 0;
+      renderPictures(loadedPictures, currentPage, true);
+
+      var filters = document.querySelector('.filters');
+      filters.addEventListener('click', function(e) {
+        var clickedElement = e.target;
+        if (clickedElement.classList.contains('filters-item')) {
+          setActiveFilter(clickedElement.getAttribute('for'), loadedPictures);
+        }
+      });
     };
     xhr.onerror = function() {
       container.classList.add('pictures-failure');
@@ -113,6 +136,11 @@
     if (isLastElement) {
       filters.classList.remove('hidden');
       container.classList.remove('pictures-loading');
+      // Додобавляем страницы в случае большого экрана
+      var containerCoordinates = container.getBoundingClientRect();
+      if (containerCoordinates.bottom < window.innerHeight) {
+        appendPage(true);
+      }
     }
   }
 
@@ -126,7 +154,7 @@
       return;
     }
     activeFilterId = id;
-    var filteredPictures = pictures.slice(0);
+    filteredPictures = pictures.slice(0);
 
     switch (id) {
       case 'filter-discussed':
@@ -144,6 +172,30 @@
         break;
     }
 
-    renderPictures(filteredPictures);
+    currentPage = 0;
+    renderPictures(filteredPictures, currentPage, true);
+  }
+
+  var scrollTimeout;
+
+  window.addEventListener('scroll', function(e) {
+    clearTimeout(scrollTimeout);
+    scrollTimeout = setTimeout(function() {
+      appendPage();
+    }, THROTTLE_TIMEOUT);
+  });
+
+  /**
+   * Добавление в конец новой страницы
+   * @param  {boolean} appendForce
+   * @return {[type]}             [description]
+   */
+  function appendPage(appendForce) {
+    var containerCoordinates = container.getBoundingClientRect();
+    if (containerCoordinates.bottom === window.innerHeight || appendForce) {
+      if (currentPage < Math.ceil(filteredPictures.length / PICTURES_PER_PAGE)) {
+        renderPictures(filteredPictures, currentPage);
+      }
+    }
   }
 })();
