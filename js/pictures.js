@@ -1,7 +1,6 @@
+/* global Photo: true */
 'use strict';
 (function() {
-  var PICTURE_SIDE = 182;
-  var IMAGE_TIMEOUT = 10000;
   var XHR_TIMEOUT = 10000;
   var START_TIME = (new Date().valueOf()) - (14 * 24 * 60 * 60 * 1000);
   var container = document.querySelector('.pictures');
@@ -12,6 +11,7 @@
   var PICTURES_PER_PAGE = 12;
   var filteredPictures;
   var THROTTLE_TIMEOUT = 100;
+  var elements = []; // объекты-картинки
 
   filters.classList.add('hidden');
   getPictures();
@@ -26,7 +26,10 @@
   function renderPictures(pictures, pageNumber, replace) {
     container.classList.add('pictures-loading');
     if (replace) {
-      container.innerHTML = '';
+      elements.forEach(function(element) {
+        container.removeChild(element.element);
+      });
+      elements.length = 0;
     }
 
     var fragment = document.createDocumentFragment();
@@ -35,8 +38,10 @@
     var pagePictures = pictures.slice(fromItem, toItem);
 
     pagePictures.forEach(function(picture, index, array) {
-      var element = createElementFromTemplate(picture, (index === array.length - 1));
-      fragment.appendChild(element);
+      var element = new Photo(picture, (index === array.length - 1));
+      elements.push(element);
+      element.render();
+      fragment.appendChild(element.element);
     });
     container.appendChild(fragment);
     currentPage++;
@@ -78,60 +83,11 @@
   }
 
   /**
-   * Создает элемент по шаблону
-   * @param  {Object} data
-   * @param  {boolean} isLastElement
-   * @return {HTMLElement}
-   */
-  function createElementFromTemplate(data, isLastElement) {
-    var template = document.querySelector('#picture-template');
-    var element;
-    var imageLoadTimeout;
-
-    if ('content' in template) {
-      element = template.content.children[0].cloneNode(true);
-    } else {
-      element = template.childNodes[0].cloneNode(true);
-    }
-
-    element.querySelector('.picture-likes').textContent = data.likes;
-    element.querySelector('.picture-comments').textContent = data.comments;
-
-    var img = new Image();
-    img.src = data.url;
-    img.width = PICTURE_SIDE;
-    img.height = PICTURE_SIDE;
-
-    img.onload = function() {
-      clearTimeout(imageLoadTimeout);
-      element.classList.remove('pictures-loading');
-      element.replaceChild(img, element.childNodes[1]);
-      actionAfterLastElement(isLastElement);
-    };
-
-    img.onerror = function() {
-      element.classList.remove('pictures-loading');
-      element.classList.add('picture-load-failure');
-      actionAfterLastElement(isLastElement);
-    };
-
-    //в случае отсутсвия ответа сервера
-    imageLoadTimeout = setTimeout(function() {
-      img.src = '';
-      element.classList.remove('pictures-loading');
-      element.classList.add('picture-load-failure');
-      actionAfterLastElement(isLastElement);
-    }, IMAGE_TIMEOUT);
-
-    return element;
-  }
-
-  /**
    * Действия, выполняющиеся после обработки последнего элемента
    * @param  {Boolean} isLastElement
    * @return
    */
-  function actionAfterLastElement(isLastElement) {
+  window.actionAfterLastElement = function(isLastElement) {
     if (isLastElement) {
       filters.classList.remove('hidden');
       container.classList.remove('pictures-loading');
@@ -141,7 +97,7 @@
         appendPage(true);
       }
     }
-  }
+  };
 
   /**
    * Установка выбранного фильтра
