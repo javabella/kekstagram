@@ -1,4 +1,4 @@
-/* global Photo: true */
+/* global Photo: true, Gallery: true */
 'use strict';
 (function() {
   var XHR_TIMEOUT = 10000;
@@ -12,6 +12,7 @@
   var filteredPictures;
   var THROTTLE_TIMEOUT = 100;
   var elements = []; // объекты-картинки
+  var gallery = new Gallery();
 
   filters.classList.add('hidden');
   getPictures();
@@ -27,6 +28,7 @@
     container.classList.add('pictures-loading');
     if (replace) {
       elements.forEach(function(element) {
+        element.element.removeEventListener('click', _onClick);
         container.removeChild(element.element);
       });
       elements.length = 0;
@@ -42,9 +44,20 @@
       elements.push(element);
       element.render();
       fragment.appendChild(element.element);
+
+      element.element.addEventListener('click', _onClick);
     });
+
     container.appendChild(fragment);
     currentPage++;
+  }
+
+  /**
+   * Обработчик клика по картинке
+   */
+  function _onClick(e) {
+    e.preventDefault();
+    gallery.show();
   }
 
   /**
