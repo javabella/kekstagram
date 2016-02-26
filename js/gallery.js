@@ -50,7 +50,29 @@
      * @private
      */
     _onPhotoClick: function() {
-      console.log('photo clicked');
+      if (this.currentIndex + 1 < this.pictures.length) {
+        var nextPicture = this.pictures[this.currentIndex + 1];
+        if (nextPicture.element.classList.contains('picture-load-failure')) {
+          ++this.currentIndex;
+          this._onPhotoClick();
+        } else {
+          this.setCurrentPicture(++this.currentIndex);
+        }
+      }
+    },
+    setPictures: function(pictures) {
+      this.pictures = pictures;
+    },
+    setCurrentPicture: function(index) {
+      this.currentIndex = index;
+      var picture = this.pictures[index].getData();
+      var image = document.querySelector('.gallery-overlay-image');
+      var comments = document.querySelector('.gallery-overlay-controls-comments .comments-count');
+      var likes = document.querySelector('.gallery-overlay-controls-like .likes-count');
+
+      image.src = picture.url;
+      comments.textContent = picture.comments;
+      likes.textContent = picture.likes;
     }
   };
 

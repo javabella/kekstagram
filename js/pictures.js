@@ -28,7 +28,8 @@
     container.classList.add('pictures-loading');
     if (replace) {
       elements.forEach(function(element) {
-        element.element.removeEventListener('click', _onClick);
+        element.onClick = null;
+        element.remove();
         container.removeChild(element.element);
       });
       elements.length = 0;
@@ -44,20 +45,22 @@
       elements.push(element);
       element.render();
       fragment.appendChild(element.element);
-
-      element.element.addEventListener('click', _onClick);
     });
+
+    elements.forEach(function(element, index) {
+      /**
+       * Обработчик клика по картинке
+       */
+      element.onClick = function() {
+        gallery.setCurrentPicture(index);
+        gallery.show();
+      };
+    });
+    //записываем в галерею текущий набор объектов-картинок
+    gallery.setPictures(elements);
 
     container.appendChild(fragment);
     currentPage++;
-  }
-
-  /**
-   * Обработчик клика по картинке
-   */
-  function _onClick(e) {
-    e.preventDefault();
-    gallery.show();
   }
 
   /**
