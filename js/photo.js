@@ -13,6 +13,7 @@
   function Photo(data, isLastElement) {
     this._data = data;
     this._isLastElement = isLastElement;
+    this._runOnClickEvent = this._runOnClickEvent.bind(this);
   }
 
   Photo.prototype = {
@@ -54,6 +55,24 @@
         this.element.classList.add('picture-load-failure');
         actionAfterLastElement(this._isLastElement);
       }.bind(this), IMAGE_TIMEOUT);
+
+      this.element.addEventListener('click', this._runOnClickEvent);
+    },
+    getData: function() {
+      return this._data;
+    },
+    onClick: null,
+    remove: function() {
+      this.element.removeEventListener('click', this._runOnClickEvent);
+    },
+    _runOnClickEvent: function(e) {
+      e.preventDefault();
+      if (e.currentTarget.classList.contains('picture')
+          && !this.element.classList.contains('picture-load-failure')) {
+        if (typeof this.onClick === 'function') {
+          this.onClick();
+        }
+      }
     }
   };
 
