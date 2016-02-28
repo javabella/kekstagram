@@ -1,16 +1,16 @@
 'use strict';
-(function() {
-  /**
-   * Наследование свойств и методов
-   * @param  {Function} Child  наследник-конструктор
-   * @param  {Function} Parent родитель-конструктор
-   */
-  function inherit(Child, Parent) {
-    function EmptyConstructor() {}
 
-    EmptyConstructor.prototype = Parent.prototype;
-    Child.prototype = new EmptyConstructor();
-  }
+/**
+ * Наследование свойств и методов
+ * @param  {Function} Child  наследник-конструктор
+ * @param  {Function} Parent родитель-конструктор
+ */
+function inherit(Child, Parent) {
+  function EmptyConstructor() {}
 
-  window.inherit = inherit;
-})();
+  EmptyConstructor.prototype = Parent.prototype;
+  Child.prototype = new EmptyConstructor();
+}
+
+module.exports = inherit;
+
