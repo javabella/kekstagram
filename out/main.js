@@ -187,9 +187,7 @@
 	 * @return
 	 */
 	function actionAfterLastElement(isLastElement) {
-	  console.log('wow');
 	  if (isLastElement) {
-	    console.log('wowow');
 	    filters.classList.remove('hidden');
 	    container.classList.remove('pictures-loading');
 	    // Додобавляем страницы в случае большого экрана
