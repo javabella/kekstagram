@@ -14,7 +14,11 @@ var currentPage = 0;
 var PICTURES_PER_PAGE = 12;
 var filteredPictures;
 var THROTTLE_TIMEOUT = 100;
-var elements = []; // объекты-картинки
+/**
+ * объекты-картинки
+ * @type {Array<Photo>}
+ */
+var elements = [];
 var gallery = new Gallery();
 
 filters.classList.add('hidden');
