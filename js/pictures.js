@@ -68,7 +68,6 @@ function renderPictures(pictures, pageNumber, replace) {
 
 /**
  * Получаем картинки и отправляем их на отображение
- * @return {Array<Object>} [description]
  */
 function getPictures() {
   var xhr = new XMLHttpRequest();
@@ -104,7 +103,6 @@ function getPictures() {
 /**
  * Действия, выполняющиеся после обработки последнего элемента
  * @param  {Boolean} isLastElement
- * @return
  */
 function actionAfterLastElement(isLastElement) {
   if (isLastElement) {
@@ -162,7 +160,6 @@ window.addEventListener('scroll', function() {
 /**
  * Добавление в конец новой страницы
  * @param  {boolean} appendForce
- * @return {[type]}             [description]
  */
 function appendPage(appendForce) {
   var containerCoordinates = container.getBoundingClientRect();

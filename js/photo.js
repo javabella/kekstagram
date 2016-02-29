@@ -66,6 +66,11 @@ Photo.prototype = {
   remove: function() {
     this.element.removeEventListener('click', this._runOnClickEvent);
   },
+  /**
+   * @param  {Event} e
+   * @listens click
+   * @private
+   */
   _runOnClickEvent: function(e) {
     e.preventDefault();
     if (e.currentTarget.classList.contains('picture')

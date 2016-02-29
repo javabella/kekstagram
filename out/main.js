@@ -326,7 +326,13 @@
 	  remove: function() {
 	    this.element.removeEventListener('click', this._runOnClickEvent);
 	  },
+	  /**
+	   * @param  {[type]} e
+	   * @listens click
+	   * @private
+	   */
 	  _runOnClickEvent: function(e) {
+	    console.log(e.constructor.name);
 	    e.preventDefault();
 	    if (e.currentTarget.classList.contains('picture')
 	        && !this.element.classList.contains('picture-load-failure')) {
@@ -378,6 +384,7 @@
 	  },
 	  /**
 	   * Обработчик клика по крестику
+	   * @listens click
 	   * @private
 	   */
 	  _onCloseClick: function() {
@@ -385,6 +392,7 @@
 	  },
 	  /**
 	   * Обработчик нажатия Esc
+	   * @listens keydown
 	   * @private
 	   */
 	  _onDocumentKeyDown: function(e) {
@@ -394,6 +402,7 @@
 	  },
 	  /**
 	   * Обработчик клика по картинке в открытом окне галереи
+	   * @listens click
 	   * @private
 	   */
 	  _onPhotoClick: function() {
@@ -407,9 +416,15 @@
 	      }
 	    }
 	  },
+	  /**
+	   * @param {Array<Photo>} pictures
+	   */
 	  setPictures: function(pictures) {
 	    this.pictures = pictures;
 	  },
+	  /**
+	   * @param {number} index
+	   */
 	  setCurrentPicture: function(index) {
 	    this.currentIndex = index;
 	    var picture = this.pictures[index].getData();

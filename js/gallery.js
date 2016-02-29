@@ -31,6 +31,7 @@ Gallery.prototype = {
   },
   /**
    * Обработчик клика по крестику
+   * @listens click
    * @private
    */
   _onCloseClick: function() {
@@ -38,6 +39,7 @@ Gallery.prototype = {
   },
   /**
    * Обработчик нажатия Esc
+   * @listens keydown
    * @private
    */
   _onDocumentKeyDown: function(e) {
@@ -47,6 +49,7 @@ Gallery.prototype = {
   },
   /**
    * Обработчик клика по картинке в открытом окне галереи
+   * @listens click
    * @private
    */
   _onPhotoClick: function() {
@@ -60,9 +63,15 @@ Gallery.prototype = {
       }
     }
   },
+  /**
+   * @param {Array<Photo>} pictures
+   */
   setPictures: function(pictures) {
     this.pictures = pictures;
   },
+  /**
+   * @param {number} index
+   */
   setCurrentPicture: function(index) {
     this.currentIndex = index;
     var picture = this.pictures[index].getData();
