@@ -9,7 +9,11 @@ var START_TIME = (new Date().valueOf()) - (14 * 24 * 60 * 60 * 1000);
 var container = document.querySelector('.pictures');
 var filters = document.querySelector('.filters');
 var filtersItem = document.querySelectorAll('.filters-radio');
-var activeFilterId = filtersItem[0].id;
+/**
+ * название-идентификатор фильтра
+ * @type {string}
+ */
+var activeFilterId = localStorage.getItem('activeFilterId') || filtersItem[0].id;
 var currentPage = 0;
 var PICTURES_PER_PAGE = 12;
 var filteredPictures;
@@ -85,7 +89,9 @@ function getPictures() {
     container.classList.remove('pictures-failure');
     filteredPictures = loadedPictures;
     currentPage = 0;
-    renderPictures(loadedPictures, currentPage, true);
+
+    document.getElementById(activeFilterId).click();
+    setActiveFilter(activeFilterId, loadedPictures, true);
 
     filters.addEventListener('click', function(ev) {
       var clickedElement = ev.target;
@@ -124,12 +130,14 @@ function actionAfterLastElement(isLastElement) {
  * Установка выбранного фильтра
  * @param {string} id               идентификатор фильтра
  * @param {Array<Object>} pictures  загруженные картинки
+ * @param {boolean} setForce        'насильно' установить нужный фильтр
  */
-function setActiveFilter(id, pictures) {
-  if (activeFilterId === id) {
+function setActiveFilter(id, pictures, setForce) {
+  if (activeFilterId === id && !setForce) {
     return;
   }
   activeFilterId = id;
+  localStorage.setItem('activeFilterId', activeFilterId);
   filteredPictures = pictures.slice(0);
 
   switch (id) {
