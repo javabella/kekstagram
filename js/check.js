@@ -2,14 +2,14 @@
 
 /**
  * Статистика для разных типов файлов-изображений
- * @param  {*} a 
- * @param  {*=} b 
+ * @param  {*} a
+ * @param  {*=} b
  * @return {string}
  */
 function getMessage(a, b) {
 	if (typeof a == 'boolean') {
 		if (a) {
-			return 'Переданное GIF-изображение анимировано и содержит ' + b + ' кадров'; 
+			return 'Переданное GIF-изображение анимировано и содержит ' + b + ' кадров';
 		} else {
 			return 'Переданное GIF-изображение не анимировано';
 		}
@@ -33,3 +33,5 @@ function getMessage(a, b) {
 		return 'Количество красных точек во всех строчках изображения: ' + sum;
 	}
 }
+
+module.exports = getMessage;
