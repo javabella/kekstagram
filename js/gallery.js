@@ -12,9 +12,14 @@ function Gallery() {
   this._onCloseClick = this._onCloseClick.bind(this);
   this._onDocumentKeyDown = this._onDocumentKeyDown.bind(this);
   this._onPhotoClick = this._onPhotoClick.bind(this);
+  this._onHashChange = this._onHashChange.bind(this);
+  this._getPictureIndexUsingHash = this._getPictureIndexUsingHash.bind(this);
 }
 
 Gallery.prototype = {
+  init: function() {
+    window.addEventListener('hashchange', this._onHashChange);
+  },
   show: function() {
     this.element.classList.remove('invisible');
 
@@ -36,6 +41,7 @@ Gallery.prototype = {
    */
   _onCloseClick: function() {
     this.hide();
+    this.removeHash();
   },
   /**
    * Обработчик нажатия Esc
@@ -44,7 +50,7 @@ Gallery.prototype = {
    */
   _onDocumentKeyDown: function(e) {
     if (e.keyCode === ESC_KEY) {
-      this.hide();
+      this._onCloseClick();
     }
   },
   /**
@@ -59,7 +65,7 @@ Gallery.prototype = {
         ++this.currentIndex;
         this._onPhotoClick();
       } else {
-        this.setCurrentPicture(++this.currentIndex);
+        window.location.hash = this.HASH_PREFIX + (this.pictures[++this.currentIndex]).getURL();
       }
     }
   },
@@ -70,11 +76,15 @@ Gallery.prototype = {
     this.pictures = pictures;
   },
   /**
-   * @param {number} index
+   * @param {(number | string)} index
    */
   setCurrentPicture: function(index) {
     this.currentIndex = index;
-    var picture = this.pictures[index].getData();
+    if (typeof index === 'string') {
+      this.currentIndex = this._getPictureIndexUsingHash(index);
+    }
+
+    var picture = this.pictures[this.currentIndex].getData();
     var image = document.querySelector('.gallery-overlay-image');
     var comments = document.querySelector('.gallery-overlay-controls-comments .comments-count');
     var likes = document.querySelector('.gallery-overlay-controls-like .likes-count');
@@ -82,7 +92,57 @@ Gallery.prototype = {
     image.src = picture.url;
     comments.textContent = picture.comments;
     likes.textContent = picture.likes;
-  }
+  },
+  removeHash: function() {
+    var location = window.location;
+    if ('pushState' in history) {
+      // pushState корректно сработает только на сервере
+      try {
+        history.pushState('', document.title, location.pathname + location.search);
+      } catch (err) {
+        location.hash = '';
+      }
+    } else {
+      location.hash = '';
+    }
+  },
+  /**
+   * @type {number}
+   * @private
+   */
+  _radix: 10,
+  /**
+   * @listens hashchange
+   * @private
+   */
+  _onHashChange: function() {
+    this.restoreFromHash();
+  },
+  restoreFromHash: function() {
+    var expr = /#photo\/(\S+)/g;
+    if (expr.test(window.location.hash)) {
+      this.setCurrentPicture(window.location.hash);
+      this.show();
+    }
+  },
+  /**
+   * @param  {string} hash
+   * @return {number}
+   */
+  _getPictureIndexUsingHash: function(hash) {
+    var result;
+    (this.pictures).forEach(function(item, index) {
+      if (hash.indexOf(item.getURL()) !== -1) {
+        result = index;
+      }
+    });
+    return result;
+  },
+  /**
+   * @type {string}
+   * @constant
+   */
+  HASH_PREFIX: 'photo/'
 };
 
 module.exports = Gallery;

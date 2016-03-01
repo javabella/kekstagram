@@ -1,6 +1,7 @@
 'use strict';
 
 module.exports = actionAfterLastElement;
+
 var Photo = require('photo');
 var Gallery = require('gallery');
 
@@ -24,6 +25,7 @@ var THROTTLE_TIMEOUT = 100;
  */
 var elements = [];
 var gallery = new Gallery();
+gallery.init();
 
 filters.classList.add('hidden');
 getPictures();
@@ -58,13 +60,12 @@ function renderPictures(pictures, pageNumber, replace) {
     fragment.appendChild(element.element);
   });
 
-  elements.forEach(function(element, index) {
+  elements.forEach(function(element) {
     /**
      * Обработчик клика по картинке
      */
     element.onClick = function() {
-      gallery.setCurrentPicture(index);
-      gallery.show();
+      window.location.hash = gallery.HASH_PREFIX + element.getURL();
     };
   });
   //записываем в галерею текущий набор объектов-картинок
@@ -121,7 +122,13 @@ function actionAfterLastElement(isLastElement) {
     // Додобавляем страницы в случае большого экрана
     var containerCoordinates = container.getBoundingClientRect();
     if (containerCoordinates.bottom < window.innerHeight) {
-      appendPage(true);
+      var pageIsAppended = appendPage(true);
+      // для случая, когда весь экран не заполнен, но все элементы уже выведены
+      if (!pageIsAppended) {
+        gallery.restoreFromHash();
+      }
+    } else {
+      gallery.restoreFromHash();
     }
   }
 }
@@ -172,12 +179,15 @@ window.addEventListener('scroll', function() {
 /**
  * Добавление в конец новой страницы
  * @param  {boolean} appendForce
+ * @return {boolean} была ли добавлена страница
  */
 function appendPage(appendForce) {
   var containerCoordinates = container.getBoundingClientRect();
   if (containerCoordinates.bottom === window.innerHeight || appendForce) {
     if (currentPage < Math.ceil(filteredPictures.length / PICTURES_PER_PAGE)) {
       renderPictures(filteredPictures, currentPage);
+      return true;
     }
   }
+  return false;
 }

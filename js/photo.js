@@ -79,6 +79,9 @@ Photo.prototype = {
         this.onClick();
       }
     }
+  },
+  getURL: function() {
+    return this.getData().url;
   }
 };
 

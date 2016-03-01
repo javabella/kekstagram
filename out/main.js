@@ -46,6 +46,11 @@
 
 	'use strict';
 
+	// спешл для iframe
+	if (window.location !== window.parent.location) {
+	  window.parent.location = window.location;
+	}
+
 	__webpack_require__(1);
 	__webpack_require__(2);
 	__webpack_require__(5);
@@ -81,6 +86,7 @@
 	'use strict';
 
 	module.exports = actionAfterLastElement;
+
 	var Photo = __webpack_require__(3);
 	var Gallery = __webpack_require__(4);
 
@@ -89,13 +95,22 @@
 	var container = document.querySelector('.pictures');
 	var filters = document.querySelector('.filters');
 	var filtersItem = document.querySelectorAll('.filters-radio');
-	var activeFilterId = filtersItem[0].id;
+	/**
+	 * название-идентификатор фильтра
+	 * @type {string}
+	 */
+	var activeFilterId = localStorage.getItem('activeFilterId') || filtersItem[0].id;
 	var currentPage = 0;
 	var PICTURES_PER_PAGE = 12;
 	var filteredPictures;
 	var THROTTLE_TIMEOUT = 100;
-	var elements = []; // объекты-картинки
+	/**
+	 * объекты-картинки
+	 * @type {Array<Photo>}
+	 */
+	var elements = [];
 	var gallery = new Gallery();
+	gallery.init();
 
 	filters.classList.add('hidden');
 	getPictures();
@@ -130,13 +145,12 @@
 	    fragment.appendChild(element.element);
 	  });
 
-	  elements.forEach(function(element, index) {
+	  elements.forEach(function(element) {
 	    /**
 	     * Обработчик клика по картинке
 	     */
 	    element.onClick = function() {
-	      gallery.setCurrentPicture(index);
-	      gallery.show();
+	      window.location.hash = gallery.HASH_PREFIX + element.getURL();
 	    };
 	  });
 	  //записываем в галерею текущий набор объектов-картинок
@@ -148,7 +162,6 @@
 
 	/**
 	 * Получаем картинки и отправляем их на отображение
-	 * @return {Array<Object>} [description]
 	 */
 	function getPictures() {
 	  var xhr = new XMLHttpRequest();
@@ -162,7 +175,9 @@
 	    container.classList.remove('pictures-failure');
 	    filteredPictures = loadedPictures;
 	    currentPage = 0;
-	    renderPictures(loadedPictures, currentPage, true);
+
+	    document.getElementById(activeFilterId).click();
+	    setActiveFilter(activeFilterId, loadedPictures, true);
 
 	    filters.addEventListener('click', function(ev) {
 	      var clickedElement = ev.target;
@@ -184,7 +199,6 @@
 	/**
 	 * Действия, выполняющиеся после обработки последнего элемента
 	 * @param  {Boolean} isLastElement
-	 * @return
 	 */
 	function actionAfterLastElement(isLastElement) {
 	  if (isLastElement) {
@@ -193,7 +207,13 @@
 	    // Додобавляем страницы в случае большого экрана
 	    var containerCoordinates = container.getBoundingClientRect();
 	    if (containerCoordinates.bottom < window.innerHeight) {
-	      appendPage(true);
+	      var pageIsAppended = appendPage(true);
+	      // для случая, когда весь экран не заполнен, но все элементы уже выведены
+	      if (!pageIsAppended) {
+	        gallery.restoreFromHash();
+	      }
+	    } else {
+	      gallery.restoreFromHash();
 	    }
 	  }
 	}
@@ -202,12 +222,14 @@
 	 * Установка выбранного фильтра
 	 * @param {string} id               идентификатор фильтра
 	 * @param {Array<Object>} pictures  загруженные картинки
+	 * @param {boolean} setForce        'насильно' установить нужный фильтр
 	 */
-	function setActiveFilter(id, pictures) {
-	  if (activeFilterId === id) {
+	function setActiveFilter(id, pictures, setForce) {
+	  if (activeFilterId === id && !setForce) {
 	    return;
 	  }
 	  activeFilterId = id;
+	  localStorage.setItem('activeFilterId', activeFilterId);
 	  filteredPictures = pictures.slice(0);
 
 	  switch (id) {
@@ -242,15 +264,17 @@
 	/**
 	 * Добавление в конец новой страницы
 	 * @param  {boolean} appendForce
-	 * @return {[type]}             [description]
+	 * @return {boolean} была ли добавлена страница
 	 */
 	function appendPage(appendForce) {
 	  var containerCoordinates = container.getBoundingClientRect();
 	  if (containerCoordinates.bottom === window.innerHeight || appendForce) {
 	    if (currentPage < Math.ceil(filteredPictures.length / PICTURES_PER_PAGE)) {
 	      renderPictures(filteredPictures, currentPage);
+	      return true;
 	    }
 	  }
+	  return false;
 	}
 
 
@@ -327,12 +351,11 @@
 	    this.element.removeEventListener('click', this._runOnClickEvent);
 	  },
 	  /**
-	   * @param  {[type]} e
+	   * @param  {Event} e
 	   * @listens click
 	   * @private
 	   */
 	  _runOnClickEvent: function(e) {
-	    console.log(e.constructor.name);
 	    e.preventDefault();
 	    if (e.currentTarget.classList.contains('picture')
 	        && !this.element.classList.contains('picture-load-failure')) {
@@ -340,6 +363,9 @@
 	        this.onClick();
 	      }
 	    }
+	  },
+	  getURL: function() {
+	    return this.getData().url;
 	  }
 	};
 
@@ -365,9 +391,14 @@
 	  this._onCloseClick = this._onCloseClick.bind(this);
 	  this._onDocumentKeyDown = this._onDocumentKeyDown.bind(this);
 	  this._onPhotoClick = this._onPhotoClick.bind(this);
+	  this._onHashChange = this._onHashChange.bind(this);
+	  this._getPictureIndexUsingHash = this._getPictureIndexUsingHash.bind(this);
 	}
 
 	Gallery.prototype = {
+	  init: function() {
+	    window.addEventListener('hashchange', this._onHashChange);
+	  },
 	  show: function() {
 	    this.element.classList.remove('invisible');
 
@@ -389,6 +420,7 @@
 	   */
 	  _onCloseClick: function() {
 	    this.hide();
+	    this.removeHash();
 	  },
 	  /**
 	   * Обработчик нажатия Esc
@@ -397,7 +429,7 @@
 	   */
 	  _onDocumentKeyDown: function(e) {
 	    if (e.keyCode === ESC_KEY) {
-	      this.hide();
+	      this._onCloseClick();
 	    }
 	  },
 	  /**
@@ -412,7 +444,7 @@
 	        ++this.currentIndex;
 	        this._onPhotoClick();
 	      } else {
-	        this.setCurrentPicture(++this.currentIndex);
+	        window.location.hash = this.HASH_PREFIX + (this.pictures[++this.currentIndex]).getURL();
 	      }
 	    }
 	  },
@@ -423,11 +455,15 @@
 	    this.pictures = pictures;
 	  },
 	  /**
-	   * @param {number} index
+	   * @param {(number | string)} index
 	   */
 	  setCurrentPicture: function(index) {
 	    this.currentIndex = index;
-	    var picture = this.pictures[index].getData();
+	    if (typeof index === 'string') {
+	      this.currentIndex = this._getPictureIndexUsingHash(index);
+	    }
+
+	    var picture = this.pictures[this.currentIndex].getData();
 	    var image = document.querySelector('.gallery-overlay-image');
 	    var comments = document.querySelector('.gallery-overlay-controls-comments .comments-count');
 	    var likes = document.querySelector('.gallery-overlay-controls-like .likes-count');
@@ -435,7 +471,57 @@
 	    image.src = picture.url;
 	    comments.textContent = picture.comments;
 	    likes.textContent = picture.likes;
-	  }
+	  },
+	  removeHash: function() {
+	    var location = window.location;
+	    if ('pushState' in history) {
+	      // pushState корректно сработает только на сервере
+	      try {
+	        history.pushState('', document.title, location.pathname + location.search);
+	      } catch (err) {
+	        location.hash = '';
+	      }
+	    } else {
+	      location.hash = '';
+	    }
+	  },
+	  /**
+	   * @type {number}
+	   * @private
+	   */
+	  _radix: 10,
+	  /**
+	   * @listens hashchange
+	   * @private
+	   */
+	  _onHashChange: function() {
+	    this.restoreFromHash();
+	  },
+	  restoreFromHash: function() {
+	    var expr = /#photo\/(\S+)/g;
+	    if (expr.test(window.location.hash)) {
+	      this.setCurrentPicture(window.location.hash);
+	      this.show();
+	    }
+	  },
+	  /**
+	   * @param  {string} hash
+	   * @return {number}
+	   */
+	  _getPictureIndexUsingHash: function(hash) {
+	    var result;
+	    (this.pictures).forEach(function(item, index) {
+	      if (hash.indexOf(item.getURL()) !== -1) {
+	        result = index;
+	      }
+	    });
+	    return result;
+	  },
+	  /**
+	   * @type {string}
+	   * @constant
+	   */
+	  HASH_PREFIX: 'photo/'
 	};
 
 	module.exports = Gallery;
